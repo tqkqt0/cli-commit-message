@@ -125,9 +125,35 @@ test('instructions は箇条書きとして ${instructions} の位置に入る',
   );
 });
 
-test('既定のプロンプトにもタグの約束が入る', () => {
+test('既定のプロンプトは英語で、タグの約束と言語指定が入る', () => {
   const prompt = buildPrompt();
 
   assert.ok(prompt.includes('<commit_message>'));
-  assert.ok(prompt.includes('日本語'));
+  assert.ok(prompt.includes('Write the commit message in English.'));
+  assert.ok(prompt.includes('Conventional Commits'));
+});
+
+test('language を変えると生成物の言語指定だけが変わる', () => {
+  withSettings({ 'cliCommitMsg.language': '日本語' }, () => {
+    const prompt = buildPrompt();
+
+    assert.ok(prompt.includes('Write the commit message in 日本語.'));
+    // 指示の本体 (英語) はそのまま。言語だけを差し替える設計
+    assert.ok(prompt.includes('Conventional Commits'));
+  });
+});
+
+test('language が空でも English にフォールバックする', () => {
+  withSettings({ 'cliCommitMsg.language': '   ' }, () => {
+    assert.ok(buildPrompt().includes('Write the commit message in English.'));
+  });
+});
+
+test('promptTemplate を空にしても言語指定とタグの約束は残る', () => {
+  withSettings({ 'cliCommitMsg.promptTemplate': [], 'cliCommitMsg.language': 'Français' }, () => {
+    const prompt = buildPrompt();
+
+    assert.ok(prompt.includes('Write the commit message in Français.'));
+    assert.ok(prompt.includes('<commit_message>'));
+  });
 });

@@ -1,0 +1,43 @@
+{
+  "extension.description": "手元の CLI エージェント (Claude Code / OpenAI Codex / Gemini CLI) でコミットメッセージを生成し、ソース管理の入力欄に直接書き込む。",
+
+  "command.generate": "コミットメッセージを生成",
+  "command.abort": "コミットメッセージの生成を中止",
+  "command.showLog": "ログを表示",
+
+  "config.provider": "生成に使う CLI エージェント。選んだものに対応するモデル設定とパス設定だけが使われます。どれも事前にログイン済みである必要があります。",
+  "config.provider.claude": "Claude Code (claude -p)。既定",
+  "config.provider.codex": "OpenAI Codex (codex exec)",
+  "config.provider.gemini": "Gemini CLI (gemini -p)",
+
+  "config.language": "生成するコミットメッセージの言語。この指示は拡張がプロンプトへ必ず足すので、`#cliCommitMsg.instructions#` を書き換えずに言語を切り替えられます。",
+
+  "config.model": "Claude のモデル。`#cliCommitMsg.provider#` が `claude` のときだけ使われ、`claude -p --model <値>` に渡されます。",
+  "config.model.haiku": "最速・最安。小さい差分向き",
+  "config.model.sonnet": "速度と質のバランス。既定",
+  "config.model.opus": "最も丁寧だが遅い。大きなリファクタ向き",
+
+  "config.codexModel": "Codex のモデル。`#cliCommitMsg.provider#` が `codex` のときだけ使われ、`codex exec --model <値>` に渡されます。\n\n空にすると Codex 側の既定モデル（`~/.codex/config.toml` の設定）に任せます。",
+  "config.geminiModel": "Gemini のモデル。`#cliCommitMsg.provider#` が `gemini` のときだけ使われ、`gemini -m <値>` に渡されます。\n\n空にすると Gemini CLI 側の既定モデルに任せます。",
+
+  "config.instructions": "コミットメッセージの規約。1 項目 1 行で書くと `- ` 付きの箇条書きとしてプロンプトに埋め込まれ、`#cliCommitMsg.promptTemplate#` の `${instructions}` の位置に入ります。\n\n出力言語は `#cliCommitMsg.language#` が担当するので、ここに書く必要はありません。",
+  "config.promptTemplate": "プロンプト全文。1 要素が 1 行になります。`${instructions}` は `#cliCommitMsg.instructions#` に置換されます。差分は標準入力で渡されるためテンプレートに含める必要はありません。\n\n言語の指示と `<commit_message>` タグの約束は拡張が末尾に必ず足すため、ここに書く必要はありません（このテンプレートを空にしても外れません）。「出力形式」の 2 行は保険として残しておくと安定します。",
+
+  "config.diffScope": "どの差分を CLI に渡すか。",
+  "config.diffScope.stagedOrAll": "ステージ済みがあればそれを、無ければ全変更を対象にする（Copilot と同じ挙動）",
+  "config.diffScope.stagedOnly": "常にステージ済みのみ。ステージが空ならエラーにする",
+
+  "config.includeUntracked": "未追跡（新規）ファイルの内容も渡す。`git diff` は未追跡を出さないため、既定では明示的に補っています。ステージ済みを対象にしている場合、未追跡はそのコミットに含まれないので無視されます。",
+  "config.maxDiffBytes": "CLI に渡す差分の上限バイト数。超えた分は末尾を切り捨てます。`0` で無制限。",
+
+  "config.onExistingMessage": "入力欄に既にテキストがある場合の扱い。",
+  "config.onExistingMessage.replace": "既存の入力を上書きする（Copilot と同じ挙動）",
+  "config.onExistingMessage.append": "既存の入力の後ろに追記する",
+  "config.onExistingMessage.keep": "既存の入力があれば何もしない",
+
+  "config.claudePath": "`claude` 実行ファイルのパス。`command not found` になる場合は絶対パス（例: `/usr/local/bin/claude`）を指定してください。",
+  "config.codexPath": "`codex` 実行ファイルのパス。`command not found` になる場合は絶対パス（例: `/usr/local/bin/codex`）を指定してください。",
+  "config.geminiPath": "`gemini` 実行ファイルのパス。`command not found` になる場合は絶対パス（例: `/usr/local/bin/gemini`）を指定してください。",
+
+  "config.runInNeutralCwd": "CLI を一時ディレクトリで実行し、リポジトリの `CLAUDE.md` / `AGENTS.md` / `GEMINI.md` / `.claude` のフックを読み込ませない。オフにするとプロジェクトの指示が効く代わりに、サブエージェント起動などで大幅に遅くなることがあります。\n\n一時ディレクトリでも動くように、Codex には常に `--skip-git-repo-check`、Gemini には常に `--skip-trust` を付けて起動します。"
+}

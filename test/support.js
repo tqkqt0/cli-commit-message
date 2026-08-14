@@ -39,6 +39,12 @@ const fakeVscode = {
   commands: { registerCommand() {}, executeCommand() {} },
   extensions: { getExtension: () => undefined },
   ProgressLocation: { SourceControl: 1 },
+  // 拡張ホストの vscode.l10n.t と同じく、{0} 形式のプレースホルダを引数で埋める。
+  // テストは既定言語 (英語) の文面をそのまま見る。
+  l10n: {
+    t: (message, ...args) =>
+      String(message).replace(/\{(\d+)\}/g, (_, i) => String(args[Number(i)] ?? '')),
+  },
 };
 
 const originalLoad = Module._load;

@@ -25,6 +25,12 @@ PAYLOAD = [
     ("extension/icon.png", ROOT / "icon.png", True),
     # 配布物にライセンス本文を含める (package.json の "license": "MIT" に対応)
     ("extension/LICENSE", ROOT / "LICENSE", True),
+    # 設定画面の文言。package.json の %key% を VS Code がこれで解決する
+    # (既定は英語、表示言語が日本語なら .ja が優先される)
+    ("extension/package.nls.json", ROOT / "package.nls.json", True),
+    ("extension/package.nls.ja.json", ROOT / "package.nls.ja.json", True),
+    # 実行時メッセージ。package.json の "l10n": "./l10n" に対応する
+    ("extension/l10n/bundle.l10n.ja.json", ROOT / "l10n" / "bundle.l10n.ja.json", True),
 ]
 
 CONTENT_TYPES = """<?xml version="1.0" encoding="utf-8"?>

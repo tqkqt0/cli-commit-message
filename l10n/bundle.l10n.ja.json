@@ -1,0 +1,38 @@
+{
+  "The built-in Git extension (vscode.git) was not found.": "組み込みの Git 拡張 (vscode.git) が見つかりません。",
+  "No Git repository is open.": "Git リポジトリが開かれていません。",
+  "Repository to generate a commit message for": "コミットメッセージを生成するリポジトリ",
+  "Nothing is staged. Stage your changes first.": "ステージされた変更がありません。先に変更をステージしてください。",
+  "There are no changes.": "変更がありません。",
+
+  "staged changes": "ステージ済みの変更",
+  "all changes including unstaged": "未ステージを含む全変更",
+
+  "Unknown provider: {0} (valid values: {1})": "未知のプロバイダです: {0} (使えるのは {1})",
+  "Cannot start {0}: {1}": "{0} を起動できません: {1}",
+  "Cannot run {0}: {1}": "{0} を実行できません: {1}",
+  "{0} exited abnormally (exit {1})\n{2}": "{0} が異常終了しました (exit {1})\n{2}",
+  "{0} did not write a final message. Check the log for details.": "{0} が最終メッセージを書き出しませんでした。ログを確認してください。",
+  "Cancelled.": "中止しました。",
+
+  "A commit message is already being generated.": "コミットメッセージを生成中です。",
+  "Generating commit message…": "コミットメッセージを生成中…",
+  "The result was empty. Check the log for details.": "生成結果が空でした。ログを確認してください。",
+  "The Source Control input box already has text, so the result was not written.": "コミットメッセージ入力欄に既にテキストがあるため、生成結果を書き込みませんでした。",
+  "{0} returned no {1} tag, so the whole output was written as is. Check it for stray preamble or postscript.": "{0} が {1} を付けずに返したため、出力をそのまま書き込みました。前置きや後書きが混ざっていないか確認してください。",
+  "Commit message generation cancelled.": "コミットメッセージの生成を中止しました。",
+  "Show Log": "ログを表示",
+
+  "Running {0} ({1} / model={2}, cwd={3})": "実行: {0} ({1} / model={2}, cwd={3})",
+  "CLI default": "CLI 既定",
+  "repository": "リポジトリ",
+  "(no stats)": "(統計なし)",
+  "{0} untracked": "未追跡 {0} 件",
+  "diff truncated": "差分を切り捨て",
+  "Done ({0}ms, {1} chars)": "完了 ({0}ms, {1} 文字)",
+  "no {0}, used the whole output": "{0} が無いため出力全体を採用",
+  "Kept the existing message, nothing written (onExistingMessage=keep)": "既存メッセージを保持したため書き込みなし (onExistingMessage=keep)",
+  "Error: {0}": "エラー: {0}",
+  "Cancelled by the user": "ユーザー操作により中止",
+  "Extension activated.": "拡張を有効化しました。"
+}

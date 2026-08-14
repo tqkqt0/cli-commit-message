@@ -1,0 +1,43 @@
+{
+  "extension.description": "Write git commit messages with your local CLI agents (Claude Code / OpenAI Codex / Gemini CLI), straight into the Source Control input box.",
+
+  "command.generate": "Generate Commit Message",
+  "command.abort": "Cancel Commit Message Generation",
+  "command.showLog": "Show Log",
+
+  "config.provider": "Which CLI agent to run. Only the model and path settings that belong to the selected agent are used. The agent must already be logged in.",
+  "config.provider.claude": "Claude Code (claude -p). Default",
+  "config.provider.codex": "OpenAI Codex (codex exec)",
+  "config.provider.gemini": "Gemini CLI (gemini -p)",
+
+  "config.language": "Language of the generated commit message. The extension always appends this instruction to the prompt, so you can switch languages without touching `#cliCommitMsg.instructions#`.",
+
+  "config.model": "Claude model. Used only when `#cliCommitMsg.provider#` is `claude`, and passed to `claude -p --model <value>`.",
+  "config.model.haiku": "Fastest and cheapest. Good for small diffs",
+  "config.model.sonnet": "Balanced. Default",
+  "config.model.opus": "Most thorough but slowest. Good for large refactors",
+
+  "config.codexModel": "Codex model. Used only when `#cliCommitMsg.provider#` is `codex`, and passed to `codex exec --model <value>`.\n\nLeave it empty to use whatever default Codex is configured with (`~/.codex/config.toml`).",
+  "config.geminiModel": "Gemini model. Used only when `#cliCommitMsg.provider#` is `gemini`, and passed to `gemini -m <value>`.\n\nLeave it empty to use the Gemini CLI default.",
+
+  "config.instructions": "Rules for the commit message. One entry per line; each becomes a `- ` bullet in the prompt, inserted where `${instructions}` appears in `#cliCommitMsg.promptTemplate#`.\n\nThe output language is handled by `#cliCommitMsg.language#`, so you do not need to mention it here.",
+  "config.promptTemplate": "The full prompt. Each array entry is one line. `${instructions}` is replaced with `#cliCommitMsg.instructions#`. The diff is piped in through stdin, so it does not belong in this template.\n\nThe extension always appends the language instruction and the `<commit_message>` tag contract, so you never have to write them here (they survive even if you empty this template). Keeping the two \"Output format\" lines makes the result more stable.",
+
+  "config.diffScope": "Which diff is sent to the CLI.",
+  "config.diffScope.stagedOrAll": "Use staged changes if there are any, otherwise all changes (same as Copilot)",
+  "config.diffScope.stagedOnly": "Always staged only. Fail when nothing is staged",
+
+  "config.includeUntracked": "Also send the contents of untracked (new) files. `git diff` does not list them, so they are added explicitly. Ignored when staged changes are the target, since untracked files are not part of that commit.",
+  "config.maxDiffBytes": "Maximum size in bytes of the diff sent to the CLI. Anything beyond it is truncated from the end. `0` means no limit.",
+
+  "config.onExistingMessage": "What to do when the input box already contains text.",
+  "config.onExistingMessage.replace": "Overwrite it (same as Copilot)",
+  "config.onExistingMessage.append": "Append after the existing text",
+  "config.onExistingMessage.keep": "Do nothing when text is already there",
+
+  "config.claudePath": "Path to the `claude` executable. Set an absolute path (e.g. `/usr/local/bin/claude`) if you get `command not found`.",
+  "config.codexPath": "Path to the `codex` executable. Set an absolute path (e.g. `/usr/local/bin/codex`) if you get `command not found`.",
+  "config.geminiPath": "Path to the `gemini` executable. Set an absolute path (e.g. `/usr/local/bin/gemini`) if you get `command not found`.",
+
+  "config.runInNeutralCwd": "Run the CLI in a temporary directory so that the repository's `CLAUDE.md` / `AGENTS.md` / `GEMINI.md` / `.claude` hooks are not loaded. Turning it off makes project instructions apply, at the cost of being much slower when they spawn subagents.\n\nCodex is always started with `--skip-git-repo-check` and Gemini with `--skip-trust` so that they still run in a temporary directory."
+}

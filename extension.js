@@ -24,14 +24,23 @@ const CTX_GENERATING = 'cliCommitMsg.generating';
 const TAG_OPEN = '<commit_message>';
 const TAG_CLOSE = '</commit_message>';
 
-// buildPrompt() が promptTemplate の後ろへ必ず足す出力契約。設定ではなくコードに
-// 置くのは、ユーザーが promptTemplate を書き換えてもタグの約束だけは外れないようにするため。
-const OUTPUT_CONTRACT = [
-  '',
-  '出力の約束:',
-  `- コミットメッセージ本体を ${TAG_OPEN} と ${TAG_CLOSE} で囲む。`,
-  '- タグの外には説明・前置き・後書きを一切書かない。',
-].join('\n');
+/**
+ * buildPrompt() が promptTemplate の後ろへ必ず足す約束事。
+ *
+ * 設定ではなくコードに置くのは、ユーザーが promptTemplate を書き換えても
+ * 言語指定とタグの約束だけは外れないようにするため。ここは LLM へ渡す文面なので
+ * 表示言語 (l10n) ではなく常に英語で書き、生成物の言語だけを language で指定する。
+ */
+function outputContract(language) {
+  return [
+    '',
+    `Write the commit message in ${language}.`,
+    '',
+    'Output contract:',
+    `- Wrap the commit message body in ${TAG_OPEN} and ${TAG_CLOSE}.`,
+    '- Write nothing outside the tags: no explanation, no preamble, no postscript.',
+  ].join('\n');
+}
 
 // 対応する CLI エージェント。引数と出力の取り出し方だけが違うので、差分をここに閉じ込める。
 // 各 CLI の仕様は 2026-08-14 に実機 (claude 2.1.232 / codex 0.147.0 / gemini 0.55.1) で確認した。
@@ -127,14 +136,14 @@ function git(cwd, args) {
 async function resolveRepository(arg) {
   const ext = vscode.extensions.getExtension('vscode.git');
   if (!ext) {
-    throw new Error('組み込みの Git 拡張 (vscode.git) が見つかりません。');
+    throw new Error(vscode.l10n.t('The built-in Git extension (vscode.git) was not found.'));
   }
   const exported = ext.isActive ? ext.exports : await ext.activate();
   const api = exported.getAPI(1);
   const repos = api.repositories || [];
 
   if (repos.length === 0) {
-    throw new Error('Git リポジトリが開かれていません。');
+    throw new Error(vscode.l10n.t('No Git repository is open.'));
   }
 
   const wanted = arg && arg.rootUri ? arg.rootUri.fsPath : null;
@@ -156,7 +165,7 @@ async function resolveRepository(arg) {
 
   const picked = await vscode.window.showQuickPick(
     repos.map((r) => ({ label: r.rootUri.fsPath, repo: r })),
-    { placeHolder: 'コミットメッセージを生成するリポジトリ' }
+    { placeHolder: vscode.l10n.t('Repository to generate a commit message for') }
   );
   return picked ? picked.repo : null;
 }
@@ -174,7 +183,7 @@ async function collectDiff(root) {
   const hasStaged = probe.code !== 0;
 
   if (stagedOnly && !hasStaged) {
-    throw new Error('ステージされた変更がありません。先に変更をステージしてください。');
+    throw new Error(vscode.l10n.t('Nothing is staged. Stage your changes first.'));
   }
 
   const cachedArg = hasStaged ? ['--cached'] : [];
@@ -195,13 +204,13 @@ async function collectDiff(root) {
       if (added.stdout) {
         text += `\n${added.stdout}`;
       } else {
-        text += `\n# 新規ファイル（内容取得できず）: ${file}\n`;
+        text += `\n# New file (contents unavailable): ${file}\n`;
       }
     }
   }
 
   if (!text.trim()) {
-    throw new Error('変更がありません。');
+    throw new Error(vscode.l10n.t('There are no changes.'));
   }
 
   const max = Number(cfg.get('maxDiffBytes')) || 0;
@@ -209,7 +218,7 @@ async function collectDiff(root) {
   if (max > 0 && Buffer.byteLength(text, 'utf8') > max) {
     text =
       Buffer.from(text, 'utf8').subarray(0, max).toString('utf8') +
-      '\n\n[... 差分が長いため以降を省略 ...]\n';
+      '\n\n[... diff truncated because it is too long ...]\n';
     truncated = true;
   }
 
@@ -219,7 +228,9 @@ async function collectDiff(root) {
     text,
     untracked,
     truncated,
-    scope: hasStaged ? 'ステージ済みの変更' : '未ステージを含む全変更',
+    scope: hasStaged
+      ? vscode.l10n.t('staged changes')
+      : vscode.l10n.t('all changes including unstaged'),
     shortstat: stat.stdout.trim(),
   };
 }
@@ -230,7 +241,8 @@ function buildPrompt() {
     .map((line) => `- ${line}`)
     .join('\n');
   const template = (cfg.get('promptTemplate') || []).join('\n');
-  return template.split('${instructions}').join(instructions) + '\n' + OUTPUT_CONTRACT;
+  const language = String(cfg.get('language') || '').trim() || 'English';
+  return template.split('${instructions}').join(instructions) + '\n' + outputContract(language);
 }
 
 /** 拡張ホストの PATH は Dock 起動時に痩せていることがあるので補う。 */
@@ -259,7 +271,7 @@ function resolveProvider() {
   const spec = PROVIDERS[name];
   if (!spec) {
     throw new Error(
-      `未知のプロバイダです: ${name} (使えるのは ${Object.keys(PROVIDERS).join(' / ')})`
+      vscode.l10n.t('Unknown provider: {0} (valid values: {1})', name, Object.keys(PROVIDERS).join(' / '))
     );
   }
   return { name, spec };
@@ -272,7 +284,7 @@ function spawnCli(bin, args, cwd, input, label) {
     try {
       child = cp.spawn(bin, args, { cwd, env: buildEnv() });
     } catch (e) {
-      reject(new Error(`${bin} を起動できません: ${e.message}`));
+      reject(new Error(vscode.l10n.t('Cannot start {0}: {1}', bin, e.message)));
       return;
     }
 
@@ -292,17 +304,19 @@ function spawnCli(bin, args, cwd, input, label) {
 
     child.on('error', (e) => {
       state.child = null;
-      reject(new Error(`${bin} を実行できません: ${e.message}`));
+      reject(new Error(vscode.l10n.t('Cannot run {0}: {1}', bin, e.message)));
     });
 
     child.on('close', (code) => {
       state.child = null;
       if (state.aborted) {
-        reject(new Error('中止しました。'));
+        const aborted = new Error(vscode.l10n.t('Cancelled.'));
+        aborted.code = 'aborted';
+        reject(aborted);
         return;
       }
       if (code !== 0) {
-        reject(new Error(`${label} が異常終了しました (exit ${code})\n${err.trim()}`));
+        reject(new Error(vscode.l10n.t('{0} exited abnormally (exit {1})\n{2}', label, String(code), err.trim())));
         return;
       }
       resolve(out);
@@ -329,7 +343,15 @@ async function runCli(prompt, diff) {
     lastMessageFile = path.join(dir, 'last-message.txt');
   }
 
-  trace(`実行: ${bin} (${spec.label} / model=${model || 'CLI 既定'}, cwd=${cwd || 'リポジトリ'})`);
+  trace(
+    vscode.l10n.t(
+      'Running {0} ({1} / model={2}, cwd={3})',
+      bin,
+      spec.label,
+      model || vscode.l10n.t('CLI default'),
+      cwd || vscode.l10n.t('repository')
+    )
+  );
 
   try {
     const args = spec.buildArgs({ model, prompt, lastMessageFile });
@@ -338,7 +360,7 @@ async function runCli(prompt, diff) {
     if (!lastMessageFile) return stdout;
     if (!fs.existsSync(lastMessageFile)) {
       throw new Error(
-        `${spec.label} が最終メッセージを書き出しませんでした。ログを確認してください。`
+        vscode.l10n.t('{0} did not write a final message. Check the log for details.', spec.label)
       );
     }
     return fs.readFileSync(lastMessageFile, 'utf8');
@@ -389,9 +411,9 @@ function applyToInputBox(repo, message) {
 
   if (existing && mode === 'keep') {
     vscode.window.showInformationMessage(
-      'コミットメッセージ入力欄に既にテキストがあるため、生成結果を書き込みませんでした。'
+      vscode.l10n.t('The Source Control input box already has text, so the result was not written.')
     );
-    trace('既存メッセージを保持したため書き込みなし (onExistingMessage=keep)');
+    trace(vscode.l10n.t('Kept the existing message, nothing written (onExistingMessage=keep)'));
     return false;
   }
 
@@ -402,7 +424,7 @@ function applyToInputBox(repo, message) {
 
 async function generate(arg) {
   if (state.child) {
-    vscode.window.showWarningMessage('コミットメッセージを生成中です。');
+    vscode.window.showWarningMessage(vscode.l10n.t('A commit message is already being generated.'));
     return;
   }
 
@@ -410,7 +432,7 @@ async function generate(arg) {
   try {
     repo = await resolveRepository(arg);
   } catch (e) {
-    trace(`エラー: ${e.message}`);
+    trace(vscode.l10n.t('Error: {0}', e.message));
     vscode.window.showErrorMessage(e.message);
     return;
   }
@@ -423,27 +445,26 @@ async function generate(arg) {
     await vscode.window.withProgress(
       {
         location: vscode.ProgressLocation.SourceControl,
-        title: 'コミットメッセージを生成中…',
+        title: vscode.l10n.t('Generating commit message…'),
       },
       async () => {
         const diff = await collectDiff(root);
         trace(
-          `${root}: ${diff.scope} / ${diff.shortstat || '(統計なし)'}` +
-            (diff.untracked ? ` / 未追跡 ${diff.untracked} 件` : '') +
-            (diff.truncated ? ' / 差分を切り捨て' : '')
+          `${root}: ${diff.scope} / ${diff.shortstat || vscode.l10n.t('(no stats)')}` +
+            (diff.untracked ? ` / ${vscode.l10n.t('{0} untracked', String(diff.untracked))}` : '') +
+            (diff.truncated ? ` / ${vscode.l10n.t('diff truncated')}` : '')
         );
 
         const started = Date.now();
         const raw = await runCli(buildPrompt(), diff.text);
         const { message, clean } = extractMessage(raw);
         trace(
-          `完了 (${Date.now() - started}ms, ${message.length} 文字` +
-            (clean ? '' : ` / ${TAG_OPEN} が無いため出力全体を採用`) +
-            ')'
+          vscode.l10n.t('Done ({0}ms, {1} chars)', String(Date.now() - started), String(message.length)) +
+            (clean ? '' : ` / ${vscode.l10n.t('no {0}, used the whole output', TAG_OPEN)}`)
         );
 
         if (!message) {
-          throw new Error('生成結果が空でした。ログを確認してください。');
+          throw new Error(vscode.l10n.t('The result was empty. Check the log for details.'));
         }
         const written = applyToInputBox(repo, message);
 
@@ -451,19 +472,22 @@ async function generate(arg) {
         // そのままコミットされる事故を防ぐため、書き込んだときは必ず知らせる。
         if (written && !clean) {
           vscode.window.showWarningMessage(
-            `${resolveProvider().spec.label} が ${TAG_OPEN} を付けずに返したため、` +
-              '出力をそのまま書き込みました。前置きや後書きが混ざっていないか確認してください。'
+            vscode.l10n.t(
+              '{0} returned no {1} tag, so the whole output was written as is. Check it for stray preamble or postscript.',
+              resolveProvider().spec.label,
+              TAG_OPEN
+            )
           );
         }
       }
     );
   } catch (e) {
     const text = e && e.message ? e.message : String(e);
-    trace(`エラー: ${text}`);
-    if (text === '中止しました。') {
-      vscode.window.setStatusBarMessage('コミットメッセージの生成を中止しました。', 3000);
+    trace(vscode.l10n.t('Error: {0}', text));
+    if (e && e.code === 'aborted') {
+      vscode.window.setStatusBarMessage(vscode.l10n.t('Commit message generation cancelled.'), 3000);
     } else {
-      const OPEN_LOG = 'ログを表示';
+      const OPEN_LOG = vscode.l10n.t('Show Log');
       const choice = await vscode.window.showErrorMessage(text, OPEN_LOG);
       if (choice === OPEN_LOG) log.show(true);
     }
@@ -476,13 +500,13 @@ function abort() {
   if (!state.child) return;
   state.aborted = true;
   state.child.kill('SIGTERM');
-  trace('ユーザー操作により中止');
+  trace(vscode.l10n.t('Cancelled by the user'));
 }
 
 function activate(context) {
   log = vscode.window.createOutputChannel('CLI Commit Message');
   context.subscriptions.push(log);
-  trace('拡張を有効化しました。');
+  trace(vscode.l10n.t('Extension activated.'));
 
   context.subscriptions.push(
     vscode.commands.registerCommand('cliCommitMsg.generate', generate),
