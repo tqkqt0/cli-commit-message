@@ -2,7 +2,7 @@
   "name": "cli-commit-message",
   "displayName": "CLI Commit Message",
   "description": "%extension.description%",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "publisher": "takato",
   "icon": "icon.png",
   "license": "MIT",

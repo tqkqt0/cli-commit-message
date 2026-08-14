@@ -9,6 +9,20 @@ It exists because Copilot's "Generate Commit Message" (✨) stopped working behi
 [microsoft/vscode#316204](https://github.com/microsoft/vscode/issues/316204)
 (`promptFiltered`, 422). Upstream is still unfixed with no workaround.
 
+## Install
+
+Not on the Marketplace yet, so grab the `.vsix` from
+[Releases](https://github.com/tqkqt0/cli-commit-message/releases) and install it:
+
+```sh
+code --install-extension cli-commit-message-<version>.vsix
+```
+
+Then run `Developer: Reload Window`.
+
+VS Code enables extensions per profile. If you use profiles, install into the one you actually work
+in: `code --profile <name> --install-extension cli-commit-message-<version>.vsix`.
+
 ## Requirements
 
 - The CLI you want to use is installed **and already logged in**
@@ -76,12 +90,17 @@ spawn subagents and make generation dramatically slower.
 
 ### Language
 
-The UI follows your VS Code display language: English by default, Japanese when VS Code is in
-Japanese.
+Two separate things, on purpose.
 
-The commit message language is separate, and controlled by `cliCommitMsg.language`. The extension
-always appends that instruction to the prompt, so you can switch output language without rewriting
-`instructions` — and it keeps working even if you replace `promptTemplate` entirely.
+**The settings UI and notifications** follow your VS Code display language. English is the default
+and Japanese is bundled, and VS Code picks between them — there is deliberately no setting for it
+here, because an extension cannot override the editor's display language for its own settings page.
+Change it with the `Configure Display Language` command instead.
+
+**The commit message** is chosen with `cliCommitMsg.language`, independently of the UI. Working in an
+English editor while committing in Japanese (or the other way round) is a normal setup. The
+extension always appends that instruction to the prompt, so you can switch output language without
+rewriting `instructions`, and it keeps working even if you replace `promptTemplate` entirely.
 
 ## How each CLI is invoked
 
@@ -107,9 +126,9 @@ Every CLI is asked to wrap the body in a `<commit_message>` tag, and the extensi
 is inside the tag. That instruction is appended by the extension itself, separately from
 `promptTemplate`, so rewriting the template cannot drop it.
 
-Back when the only defence was telling the model "do not add a preamble", a model that ignored it
-produced a message that went into the input box — and got committed — together with a preamble like
-"Here is the commit message you asked for:" and a trailing review of its own work.
+Models do ignore a plain "no preamble" instruction from time to time. Without a machine-checkable
+boundary, lines like "Here is the commit message you asked for:" end up in the input box and get
+committed with the rest. The tag makes that boundary explicit.
 
 When no tag can be found the whole output is written anyway, with a warning. Showing you the content
 beats throwing it away, but you are always told that it could not be verified. Check the input box
@@ -122,32 +141,22 @@ Keeping the two "Output format" lines in `promptTemplate` makes results more sta
 The `CLI Commit Message` output channel, also reachable via `CLI Commit: Show Log`. It records the
 scope, diff stats, elapsed time and errors.
 
-## Build and install
+## Build from source
 
-No npm, no vsce. A `.vsix` is just a ZIP, so the Python standard library is enough.
+No npm packages, no vsce. A `.vsix` is just a ZIP, so the Python standard library is enough.
 
 ```sh
 python3 build-vsix.py
-code --install-extension cli-commit-message-0.3.0.vsix --force
-```
-
-Then run `Developer: Reload Window` in VS Code.
-
-Run the same two commands again after changing the code. Bump `version` in `package.json` when
-behaviour does not seem to change — VS Code can hold on to a cached copy otherwise.
-
-If you use VS Code profiles, extensions are enabled per profile. Install into the profile you
-actually use (`code --profile <name> --install-extension ...`) and confirm in the Extensions view.
-
-## Tests
-
-No dependencies. It runs on the Node standard test runner (and is excluded from the `.vsix`).
-
-```sh
+code --install-extension cli-commit-message-<version>.vsix --force
 npm test          # = node --test test/*.test.js
 ```
 
-The `vscode` module is stubbed in the tests, so VS Code does not need to be running.
+Run the same commands again after changing the code, then `Developer: Reload Window`. Bump `version`
+in `package.json` when behaviour does not seem to change — VS Code can hold on to a cached copy
+otherwise.
+
+The tests have no dependencies and stub the `vscode` module, so they run without starting VS Code.
+They are excluded from the `.vsix`.
 
 ## File layout
 
@@ -187,6 +196,20 @@ VS Code 拡張。**Claude Code** / **OpenAI Codex** / **Gemini CLI** から選�
 Copilot の「Generate Commit Message」(✨) が
 [microsoft/vscode#316204](https://github.com/microsoft/vscode/issues/316204)
 の `promptFiltered` (422) で使えなくなったための代替。上流は未修正・回避策なし。
+
+## インストール
+
+Marketplace には未公開なので、[Releases](https://github.com/tqkqt0/cli-commit-message/releases) から
+`.vsix` を取得して入れる。
+
+```sh
+code --install-extension cli-commit-message-<version>.vsix
+```
+
+そのあと VS Code で `Developer: Reload Window`。
+
+VS Code の拡張はプロファイルごとに有効・無効が分かれる。プロファイルを使っている場合は、実際に
+作業しているプロファイルへ入れること: `code --profile <名前> --install-extension cli-commit-message-<version>.vsix`
 
 ## 前提
 
@@ -253,10 +276,15 @@ CLI が環境変数から認証情報を読む場合（例: `GEMINI_API_KEY`）�
 
 ### 言語
 
-設定画面の表示は VS Code の表示言語に追従する（既定は英語、VS Code が日本語なら日本語）。
+意図的に 2 つに分けている。
 
-コミットメッセージの言語はそれとは別で、`cliCommitMsg.language` で決まる。この指示は拡張が
-プロンプトへ必ず足すので、`instructions` を書き換えずに出力言語を切り替えられる。
+**設定画面と通知の表示**は VS Code の表示言語に追従する（既定は英語、VS Code が日本語なら
+日本語）。ここに専用の設定は置いていない。拡張が自分の設定ページの表示言語をエディタから
+独立して切り替えることはできないため。変えたい場合は `Configure Display Language` コマンドを使う。
+
+**コミットメッセージの言語**は UI とは独立して `cliCommitMsg.language` で決まる。英語の
+エディタで日本語のコミットを書く（またはその逆）という使い方は普通にある。この指示は拡張が
+プロンプトへ必ず足すので、`instructions` を書き換えずに出力言語を切り替えられ、
 `promptTemplate` を丸ごと差し替えても外れない。
 
 ## CLI ごとの違い
@@ -283,9 +311,9 @@ CLI が環境変数から認証情報を読む場合（例: `GEMINI_API_KEY`）�
 入れる。この指示は `promptTemplate` とは別に拡張が必ず末尾へ足すので、テンプレートを書き換えても
 外れない。
 
-「前置きを付けるな」という指示だけに頼っていた頃は、モデルがそれを破ると「コミットメッセージが
-生成されました。以下がご要望に沿った形式です：」のような前置きと末尾の講評ごと入力欄に入り、
-そのままコミットされることがあった。
+モデルは「前置きを付けるな」という指示を時々破る。境界を機械的に判定できないと、「以下が
+ご要望のコミットメッセージです：」のような行がそのまま入力欄に入り、一緒にコミットされる。
+タグはその境界を明示するためのもの。
 
 タグが取れなかった場合は出力全体を書き込んだうえで警告を出す。生成物を捨てるより中身を見せた
 ほうが早いが、検証できていないことは必ず知らせる。警告が出たときは入力欄に余計な文章が
@@ -298,33 +326,21 @@ CLI が環境変数から認証情報を読む場合（例: `GEMINI_API_KEY`）�
 出力パネルの `CLI Commit Message`。コマンドパレットの `CLI Commit: ログを表示` でも開く。
 対象範囲・差分の統計・所要時間・エラーが出る。
 
-## ビルドとインストール
+## ソースからビルドする
 
-npm も vsce も使わない。`.vsix` は ZIP なので Python の標準ライブラリで作る。
+npm パッケージも vsce も使わない。`.vsix` は ZIP なので Python の標準ライブラリで作れる。
 
 ```sh
 python3 build-vsix.py
-code --install-extension cli-commit-message-0.3.0.vsix --force
-```
-
-インストール後は VS Code で `Developer: Reload Window`。
-
-コードを直したら同じ 2 コマンドを流し直す。`package.json` の `version` を上げないと VS Code が
-キャッシュを掴んだままになることがあるので、挙動が変わらないときは上げる。
-
-VS Code のプロファイルを使っている場合、拡張はプロファイルごとに有効・無効が分かれる。実際に
-使っているプロファイルへ入れ（`code --profile <名前> --install-extension ...`）、拡張ビューで
-有効になっているか確認する。
-
-## テスト
-
-依存パッケージなし。Node 標準のテストランナーで動く（`.vsix` には入らない）。
-
-```sh
+code --install-extension cli-commit-message-<version>.vsix --force
 npm test          # = node --test test/*.test.js
 ```
 
-`vscode` モジュールはテスト側でスタブしているので、VS Code を起動せずに走る。
+コードを直したら同じコマンドを流し直し、`Developer: Reload Window`。`package.json` の `version`
+を上げないと VS Code がキャッシュを掴んだままになることがあるので、挙動が変わらないときは上げる。
+
+テストは依存パッケージなしで、`vscode` モジュールをスタブしているため VS Code を起動せずに走る。
+`.vsix` には含まれない。
 
 ## ファイル構成
 
