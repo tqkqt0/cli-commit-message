@@ -15,18 +15,18 @@ It exists because Copilot's "Generate Commit Message" (✨) stopped working behi
   (`claude` / `codex` / `gemini`; check with `command -v <name>`)
 - macOS / Linux (it uses `git diff --no-index -- /dev/null <file>`)
 
-The extension holds no API key of its own. Authentication is left to each CLI, so run it once in a
-terminal first and complete the login there.
+### Authentication
 
-### Note for Gemini
+The extension holds no API key of its own — it reuses whatever credentials the CLI already has. Run
+your chosen CLI once in a terminal and finish its sign-in there, and the extension will work.
 
-As of 2026-08, Google account OAuth (the free Gemini Code Assist tier for individuals) makes the
-`gemini` CLI fail with `IneligibleTierError: This client is no longer supported`. Set a
-`GEMINI_API_KEY` environment variable (an AI Studio key) to use it.
+If a CLI reads its credentials from an environment variable (`GEMINI_API_KEY`, for example), keep in
+mind that launching VS Code from the Dock or Finder can skip your shell configuration, so the
+variable may never reach the extension host. Starting VS Code with `code` from a terminal is the
+simplest fix.
 
-Launching VS Code from the Dock may skip your shell configuration, in which case the variable never
-reaches the extension host. Start VS Code with `code` from a terminal, or set the variable somewhere
-the extension host can see.
+When authentication is not set up, the CLI's own error is surfaced verbatim in a notification and in
+the log, so you can act on it directly.
 
 ## Usage
 
@@ -128,7 +128,7 @@ No npm, no vsce. A `.vsix` is just a ZIP, so the Python standard library is enou
 
 ```sh
 python3 build-vsix.py
-code --install-extension cli-commit-message-0.2.0.vsix --force
+code --install-extension cli-commit-message-0.3.0.vsix --force
 ```
 
 Then run `Developer: Reload Window` in VS Code.
@@ -194,17 +194,17 @@ Copilot の「Generate Commit Message」(✨) が
   （`claude` / `codex` / `gemini`。`command -v <名前>` で確認）
 - macOS / Linux（`git diff --no-index -- /dev/null <file>` を使うため）
 
-拡張は API キーを持たない。認証は各 CLI に任せているので、先に一度ターミナルで動かして
-ログイン状態を作っておく。
+### 認証
 
-### Gemini を使う場合の注意
+拡張は API キーを持たない。CLI が既に持っている認証をそのまま使うので、先に一度ターミナルで
+その CLI を動かし、ログインを済ませておけばよい。
 
-2026-08 時点で、Google アカウントの OAuth（Gemini Code Assist 個人無料枠）では `gemini` CLI が
-`IneligibleTierError: This client is no longer supported` を返す。使うには `GEMINI_API_KEY` を
-環境変数に置く（AI Studio のキー）。
+CLI が環境変数から認証情報を読む場合（例: `GEMINI_API_KEY`）、VS Code を Dock や Finder から
+起動するとシェルの設定が読まれず、変数が拡張ホストに届かないことがある。ターミナルから
+`code` で起動するのが手っ取り早い。
 
-VS Code を Dock から起動するとシェルの設定が読まれず、環境変数が拡張ホストに届かないことがある。
-その場合はターミナルから `code` で起動するか、拡張ホストに届く形で設定する。
+認証ができていないときは、CLI が出したエラーをそのまま通知とログに表示するので、原因に直接
+対処できる。
 
 ## 使い方
 
@@ -304,7 +304,7 @@ npm も vsce も使わない。`.vsix` は ZIP なので Python の標準ライ�
 
 ```sh
 python3 build-vsix.py
-code --install-extension cli-commit-message-0.2.0.vsix --force
+code --install-extension cli-commit-message-0.3.0.vsix --force
 ```
 
 インストール後は VS Code で `Developer: Reload Window`。

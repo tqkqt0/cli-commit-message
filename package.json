@@ -2,7 +2,7 @@
   "name": "cli-commit-message",
   "displayName": "CLI Commit Message",
   "description": "%extension.description%",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "publisher": "takato",
   "icon": "icon.png",
   "license": "MIT",
@@ -116,11 +116,13 @@
         "cliCommitMsg.model": {
           "type": "string",
           "enum": [
+            "",
             "haiku",
             "sonnet",
             "opus"
           ],
           "enumDescriptions": [
+            "%config.model.cliDefault%",
             "%config.model.haiku%",
             "%config.model.sonnet%",
             "%config.model.opus%"
@@ -133,13 +135,45 @@
           "type": "string",
           "default": "",
           "order": 4,
-          "markdownDescription": "%config.codexModel%"
+          "markdownDescription": "%config.codexModel%",
+          "enum": [
+            "",
+            "gpt-5.6-sol",
+            "gpt-5.6-terra",
+            "gpt-5.6-luna",
+            "gpt-5.6-pro",
+            "gpt-5.4-mini"
+          ],
+          "enumDescriptions": [
+            "%config.model.cliDefault%",
+            "",
+            "",
+            "",
+            "",
+            ""
+          ]
         },
         "cliCommitMsg.geminiModel": {
           "type": "string",
           "default": "",
           "order": 5,
-          "markdownDescription": "%config.geminiModel%"
+          "markdownDescription": "%config.geminiModel%",
+          "enum": [
+            "",
+            "gemini-3.5-flash",
+            "gemini-3.1-pro",
+            "gemini-3-pro",
+            "gemini-3-flash",
+            "gemini-2.5-flash"
+          ],
+          "enumDescriptions": [
+            "%config.model.cliDefault%",
+            "",
+            "",
+            "",
+            "",
+            ""
+          ]
         },
         "cliCommitMsg.instructions": {
           "type": "array",
