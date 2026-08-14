@@ -1,0 +1,228 @@
+{
+  "name": "cli-commit-message",
+  "displayName": "CLI Commit Message",
+  "description": "Claude Code / OpenAI Codex / Gemini CLI でコミットメッセージを生成し、ソース管理の入力欄に直接書き込む",
+  "version": "0.1.1",
+  "publisher": "takato",
+  "icon": "icon.png",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.js"
+  },
+  "categories": [
+    "SCM Providers",
+    "AI"
+  ],
+  "main": "./extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "cliCommitMsg.generate",
+        "title": "コミットメッセージを生成",
+        "category": "CLI Commit",
+        "icon": "$(sparkle)"
+      },
+      {
+        "command": "cliCommitMsg.abort",
+        "title": "コミットメッセージの生成を中止",
+        "category": "CLI Commit",
+        "icon": "$(stop-circle)"
+      },
+      {
+        "command": "cliCommitMsg.showLog",
+        "title": "ログを表示",
+        "category": "CLI Commit"
+      }
+    ],
+    "menus": {
+      "scm/title": [
+        {
+          "command": "cliCommitMsg.generate",
+          "group": "navigation",
+          "when": "scmProvider == git && !cliCommitMsg.generating"
+        },
+        {
+          "command": "cliCommitMsg.abort",
+          "group": "navigation",
+          "when": "scmProvider == git && cliCommitMsg.generating"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "cliCommitMsg.abort",
+          "when": "cliCommitMsg.generating"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "CLI Commit Message",
+      "properties": {
+        "cliCommitMsg.provider": {
+          "type": "string",
+          "enum": [
+            "claude",
+            "codex",
+            "gemini"
+          ],
+          "enumDescriptions": [
+            "Claude Code (claude -p)。既定",
+            "OpenAI Codex (codex exec)",
+            "Gemini CLI (gemini -p)"
+          ],
+          "default": "claude",
+          "order": 1,
+          "markdownDescription": "生成に使う CLI エージェント。選んだものに対応するモデル設定とパス設定だけが使われます。どれも事前にログイン済みである必要があります。"
+        },
+        "cliCommitMsg.model": {
+          "type": "string",
+          "enum": [
+            "haiku",
+            "sonnet",
+            "opus"
+          ],
+          "enumDescriptions": [
+            "最速・最安。小さい差分向き",
+            "速度と質のバランス。既定",
+            "最も丁寧だが遅い。大きなリファクタ向き"
+          ],
+          "default": "sonnet",
+          "order": 2,
+          "markdownDescription": "Claude のモデル。`#cliCommitMsg.provider#` が `claude` のときだけ使われ、`claude -p --model <値>` に渡されます。"
+        },
+        "cliCommitMsg.codexModel": {
+          "type": "string",
+          "default": "",
+          "order": 3,
+          "markdownDescription": "Codex のモデル。`#cliCommitMsg.provider#` が `codex` のときだけ使われ、`codex exec --model <値>` に渡されます。\n\n空にすると Codex 側の既定モデル（`~/.codex/config.toml` の設定）に任せます。"
+        },
+        "cliCommitMsg.geminiModel": {
+          "type": "string",
+          "default": "",
+          "order": 4,
+          "markdownDescription": "Gemini のモデル。`#cliCommitMsg.provider#` が `gemini` のときだけ使われ、`gemini -m <値>` に渡されます。\n\n空にすると Gemini CLI 側の既定モデルに任せます。"
+        },
+        "cliCommitMsg.instructions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "** 必ず日本語で出力 **",
+            "Conventional Commits形式に従ってください。プレフィックス(feat, fix, docs, style, refactor, test, chore)を使用し、タイトル書いてください。",
+            "タイトルのあと': 'で区切って詳細な説明を追加"
+          ],
+          "order": 5,
+          "markdownDescription": "コミットメッセージの規約。1 項目 1 行で書くと `- ` 付きの箇条書きとしてプロンプトに埋め込まれます。`#cliCommitMsg.promptTemplate#` の `${instructions}` の位置に入ります。"
+        },
+        "cliCommitMsg.promptTemplate": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "以下は git の差分です。この変更に対するコミットメッセージを 1 つだけ生成してください。",
+            "",
+            "規約:",
+            "${instructions}",
+            "",
+            "出力形式:",
+            "- コミットメッセージ本体のみを出力する。",
+            "- 前置き・後書き・コードフェンス・引用符・見出しは一切付けない。"
+          ],
+          "order": 6,
+          "markdownDescription": "プロンプト全文。1 要素が 1 行になります。`${instructions}` は `#cliCommitMsg.instructions#` に置換されます。差分は標準入力で渡されるためテンプレートに含める必要はありません。\n\nコミットメッセージ本体を `<commit_message>` タグで囲ませる指示は拡張が末尾に自動で足すため、テンプレートに書く必要はありません（このテンプレートを空にしてもタグの約束は外れません）。「出力形式」の 2 行は保険として残しておくと安定します。"
+        },
+        "cliCommitMsg.diffScope": {
+          "type": "string",
+          "enum": [
+            "stagedOrAll",
+            "stagedOnly"
+          ],
+          "enumDescriptions": [
+            "ステージ済みがあればそれを、無ければ全変更を対象にする（Copilot と同じ挙動）",
+            "常にステージ済みのみ。ステージが空ならエラーにする"
+          ],
+          "default": "stagedOrAll",
+          "order": 7,
+          "markdownDescription": "どの差分を CLI に渡すか。"
+        },
+        "cliCommitMsg.includeUntracked": {
+          "type": "boolean",
+          "default": true,
+          "order": 8,
+          "markdownDescription": "未追跡（新規）ファイルの内容も渡す。`git diff` は未追跡を出さないため、既定では明示的に補っています。ステージ済みを対象にしている場合、未追跡はそのコミットに含まれないので無視されます。"
+        },
+        "cliCommitMsg.maxDiffBytes": {
+          "type": "number",
+          "default": 400000,
+          "minimum": 0,
+          "order": 9,
+          "markdownDescription": "CLI に渡す差分の上限バイト数。超えた分は末尾を切り捨てます。`0` で無制限。"
+        },
+        "cliCommitMsg.onExistingMessage": {
+          "type": "string",
+          "enum": [
+            "replace",
+            "append",
+            "keep"
+          ],
+          "enumDescriptions": [
+            "既存の入力を上書きする（Copilot と同じ挙動）",
+            "既存の入力の後ろに追記する",
+            "既存の入力があれば何もしない"
+          ],
+          "default": "replace",
+          "order": 10,
+          "markdownDescription": "入力欄に既にテキストがある場合の扱い。"
+        },
+        "cliCommitMsg.claudePath": {
+          "type": "string",
+          "default": "claude",
+          "order": 11,
+          "markdownDescription": "`claude` 実行ファイルのパス。`command not found` になる場合は絶対パス（例: `/usr/local/bin/claude`）を指定してください。"
+        },
+        "cliCommitMsg.codexPath": {
+          "type": "string",
+          "default": "codex",
+          "order": 12,
+          "markdownDescription": "`codex` 実行ファイルのパス。`command not found` になる場合は絶対パス（例: `/usr/local/bin/codex`）を指定してください。"
+        },
+        "cliCommitMsg.geminiPath": {
+          "type": "string",
+          "default": "gemini",
+          "order": 13,
+          "markdownDescription": "`gemini` 実行ファイルのパス。`command not found` になる場合は絶対パス（例: `/usr/local/bin/gemini`）を指定してください。"
+        },
+        "cliCommitMsg.runInNeutralCwd": {
+          "type": "boolean",
+          "default": true,
+          "order": 14,
+          "markdownDescription": "CLI を一時ディレクトリで実行し、リポジトリの `CLAUDE.md` / `AGENTS.md` / `GEMINI.md` / `.claude` のフックを読み込ませない。オフにするとプロジェクトの指示が効く代わりに、サブエージェント起動などで大幅に遅くなることがあります。\n\n一時ディレクトリでも動くように、Codex には常に `--skip-git-repo-check`、Gemini には常に `--skip-trust` を付けて起動します。"
+        }
+      }
+    }
+  },
+  "keywords": [
+    "git",
+    "commit",
+    "commit message",
+    "scm",
+    "ai",
+    "claude",
+    "codex",
+    "gemini",
+    "cli",
+    "conventional commits"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tqkqt0/cli-commit-message.git"
+  },
+  "bugs": {
+    "url": "https://github.com/tqkqt0/cli-commit-message/issues"
+  },
+  "homepage": "https://github.com/tqkqt0/cli-commit-message#readme"
+}
